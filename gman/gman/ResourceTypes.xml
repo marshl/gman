@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Resource Type</Name>
+  <Directory>ResourceTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT rt.xml_data.getClobVal()
+FROM decmgr.resource_types rt
+WHERE rt.res_type = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

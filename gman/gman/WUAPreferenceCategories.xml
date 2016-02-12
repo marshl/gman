@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>WUA Preference Category</Name>
+  <Directory>WUAPreferenceCategories</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT wpc.xml_data.getClobVal()
+FROM securemgr.wua_preference_categories wpc
+WHERE wpc.category_name = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

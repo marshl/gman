@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Report Definition</Name>
+  <Directory>ReportDefinitions</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT rd.xml_data.getClobVal()
+FROM reportmgr.report_definitions rd
+WHERE rd.domain = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

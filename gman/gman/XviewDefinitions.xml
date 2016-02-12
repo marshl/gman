@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Xview Definitions</Name>
+  <Directory>XviewDefinitions</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT x.xview_metadata.getClobVal()
+FROM xviewmgr.xview_definition_metadata x
+WHERE file_name = :file_name
+  </LoadStatement>
+</FolderDefinition>

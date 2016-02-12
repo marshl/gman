@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Fox Modules</Name>
+  <Directory>FoxModules</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT fc.data FROM envmgr.fox_components fc
+WHERE fc.type = 'module'
+AND fc.name = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

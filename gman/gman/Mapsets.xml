@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Mapsets</Name>
+  <Directory>Mapsets\\Environmental</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT emm.metadata.getClobVal()
+FROM envmgr.env_mapsets_metadata emm
+WHERE emm.domain = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Document Templates</Name>
+  <Directory>DocumentTemplates</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT dt.xml_data.getClobVal()
+FROM decmgr.document_templates dt
+WHERE dt.name = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

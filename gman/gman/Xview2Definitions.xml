@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Xview2 Definitions</Name>
+  <Directory>Xview2Definitions</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT x2dm.xview_metadata_formatted
+FROM xviewmgr.xview2_definition_metadata x2dm
+WHERE x2dm.file_name  = :file_name
+  </LoadStatement>
+</FolderDefinition>

@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Portal Folder Type</Name>
+  <Directory>PortalFolderTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT pft.xml_data.getClobVal()
+FROM decmgr.portal_folder_types pft
+WHERE pft.portal_folder_type = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

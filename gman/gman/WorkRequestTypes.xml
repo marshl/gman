@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Work Request Types</Name>
+  <Directory>ApplicationMetadata\\WorkRequestTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT wrt.xml_data.getClobVal()
+FROM iconmgr.work_request_types wrt
+WHERE wrt.mnem = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

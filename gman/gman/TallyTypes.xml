@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Tally Type</Name>
+  <Directory>TallyTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT tt.xml_data.getClobVal()
+FROM bpmmgr.tally_types tt
+WHERE tt.tally_type = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>File Folder Types</Name>
+  <Directory>FileFolderTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT fft.xml_data.getClobVal()
+FROM decmgr.file_folder_types fft
+WHERE fft.file_folder_type = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

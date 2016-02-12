@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>DocLibTypes</Name>
+  <Directory>DocLibTypes</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT dlt.xml_data.getClobVal()
+FROM doclibmgr.document_library_types dlt
+WHERE dlt.document_library_type = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

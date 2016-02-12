@@ -1,0 +1,10 @@
+<FolderDefinition>
+  <Name>Navbar Action Caegory</Name>
+  <Directory>NavBarActionCategories</Directory>
+  <Extension>*.xml</Extension>
+  <LoadStatement>
+SELECT nac.xml_data.getClobVal()
+FROM envmgr.nav_bar_action_categories nac
+WHERE nac.mnem = REPLACE( :file_name, '.xml', '' )
+  </LoadStatement>
+</FolderDefinition>

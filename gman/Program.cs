@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="filename.cs" company="marshl">
+// <copyright file="Program.cs" company="marshl">
 // Copyright 2016, Liam Marshall, marshl.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 // "The right man in the wrong place can make all the difference in the world"
 //
 //-----------------------------------------------------------------------
-namespace gman
+namespace GMan
 {
     using System;
     using System.Collections.Generic;
@@ -26,14 +26,21 @@ namespace gman
     using System.IO;
     using System.Net.Sockets;
     using System.Text.RegularExpressions;
+    using System.Xml;
+    using System.Xml.Serialization;
     using Mono.Options;
     using Oracle.ManagedDataAccess.Client;
     using Oracle.ManagedDataAccess.Types;
-    using System.Xml;
-    using System.Xml.Serialization;
 
-    class Program
+    /// <summary>
+    /// The entry class of the program.
+    /// </summary>
+    public class Program
     {
+        /// <summary>
+        /// The entry point of the program
+        /// </summary>
+        /// <param name="args">The command line arguments to the program.</param>
         public static void Main(string[] args)
         {
             bool show_help = false;
@@ -44,8 +51,8 @@ namespace gman
             string sid = null;
             string directory = null;
 
-
-            var p = new OptionSet() {
+            var p = new OptionSet()
+            {
                 { "u|username=",
                     "the username of {USERNAME} to log in as.\n" +
                         "default xviewmgr.",
@@ -112,14 +119,32 @@ namespace gman
             DirectoryInfo codeSourceDirectory = new DirectoryInfo(directory);
 
             PatchCheck(con, codeSourceDirectory);
-            //CheckXviews(con, codeSourceDirectory);
-            CheckFileDefinitions(con, codeSourceDirectory);
-            //PackageCheck(con, codeSourceDirectory);
-
+            CheckALlFolderDefinitions(con, codeSourceDirectory);
+            
+            // PackageCheck(con, codeSourceDirectory);
             con.Close();
         }
 
-        static void PatchCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
+        /// <summary>
+        /// Displays a help message for the given OptionSet
+        /// </summary>
+        /// <param name="optionSet">The option set to display the help for.</param>
+        private static void ShowHelp(OptionSet optionSet)
+        {
+            Console.WriteLine("Usage: greet [OPTIONS]+ message");
+            Console.WriteLine("Greet a list of individuals with an optional message.");
+            Console.WriteLine("If no message is specified, a generic greeting is used.");
+            Console.WriteLine();
+            Console.WriteLine("Options:");
+            optionSet.WriteOptionDescriptions(Console.Out);
+        }
+
+        /// <summary>
+        /// Performs a patch check for the database.
+        /// </summary>
+        /// <param name="con">The oracle connection to use.</param>
+        /// <param name="codeSourceDirectory">The Code Source directory to start from.</param>
+        private static void PatchCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
             OracleCommand patchCommand = con.CreateCommand();
             patchCommand.CommandText = @"
@@ -138,12 +163,12 @@ AND pr.ignore_flag IS NULL";
 
                 foreach (FileInfo patchFile in subDir.GetFiles("*.sql"))
                 {
-                    Regex r = new Regex(@"(\D+?)(\d+?) \(.+?\).sql");
-                    Match m = r.Match(patchFile.Name);
-                    Debug.Assert(m.Groups.Count > 0);
-                    string patchType = m.Groups[1].Value;
-                    string patchNum = m.Groups[2].Value;
-                    //Console.WriteLine(patchType + " " + patchNum);
+                    Regex regex = new Regex(@"(\D+?)(\d+?) \(.+?\).sql");
+                    Match match = regex.Match(patchFile.Name);
+                    Debug.Assert(match.Groups.Count > 0, "The given file does not meet the patch naming guidelines");
+                    string patchType = match.Groups[1].Value;
+                    string patchNum = match.Groups[2].Value;
+
                     patchCommand.Parameters.Clear();
                     patchCommand.Parameters.Add("patch_label", patchType);
                     patchCommand.Parameters.Add("patch_number", patchNum);
@@ -152,14 +177,20 @@ AND pr.ignore_flag IS NULL";
                     {
                         Console.WriteLine($"Patch {patchFile} will be run.");
                     }
+
                     reader.Close();
                 }
             }
+
             patchCommand.Dispose();
         }
 
-
-        static void PackageCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
+        /// <summary>
+        /// Compares the packages on the database with those in the CodeSource folder.
+        /// </summary>
+        /// <param name="con">The Oracle connection to check with.</param>
+        /// <param name="codeSourceDirectory">The Code Source directory to start from.</param>
+        private static void PackageCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
             DirectoryInfo datasouceDirectory = new DirectoryInfo(Path.Combine(codeSourceDirectory.FullName, "DatabaseSource", "CoreSource"));
 
@@ -194,10 +225,10 @@ AND pr.ignore_flag IS NULL";
                             packageType = "TYPE_BODY";
                             break;
                         case ".prc":
-                            packageType = "PROCEDURE";// "PROCOBJ";
+                            packageType = "PROCEDURE";
                             break;
                         default:
-                            Debug.Assert(false);
+                            Debug.Assert(false, $"Unknown extension {fileInfo.Extension}");
                             break;
                     }
 
@@ -212,11 +243,12 @@ AND pr.ignore_flag IS NULL";
                         AND name = '{packageName}'
                         ORDER BY line ASC";
                         OracleDataReader reader = cmd.ExecuteReader();
-                        result = "";
+                        result = string.Empty;
                         while (reader.Read())
                         {
                             result += reader.GetString(0);
                         }
+
                         reader.Close();
                     }
                     else
@@ -237,21 +269,15 @@ AND pr.ignore_flag IS NULL";
                                 Console.WriteLine($"Adding new package {packageName}");
                                 continue;
                             }
+
                             throw;
                         }
                     }
 
-                    /*if (!reader.Read())
-                    {
-                        Console.WriteLine($"No data found on clob retrieval of when executing command: {cmd.CommandText}");
-                        return;
-                    }*/
-                    //
-
-                    string databaseContents = NormalisePackage(result, packageName);
+                    string databaseContents = CleanPackageSource(result, packageName);
 
                     string fileContents = File.ReadAllText(fileInfo.FullName);
-                    fileContents = NormalisePackage(fileContents, packageName);
+                    fileContents = CleanPackageSource(fileContents, packageName);
 
                     if (databaseContents != fileContents)
                     {
@@ -265,7 +291,12 @@ AND pr.ignore_flag IS NULL";
             }
         }
 
-        static void CheckFileDefinitions(OracleConnection con, DirectoryInfo codeSourceDirectory)
+        /// <summary>
+        /// Compares all folder definitions with the database.
+        /// </summary>
+        /// <param name="con">The Oracle connection to connect with.</param>
+        /// <param name="codeSourceDirectory">The CodeSource directory to diff against.</param>
+        private static void CheckALlFolderDefinitions(OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
             DirectoryInfo definitionDirectory = new DirectoryInfo("gman");
             foreach (FileInfo file in definitionDirectory.GetFiles("*.xml"))
@@ -282,7 +313,13 @@ AND pr.ignore_flag IS NULL";
             }
         }
 
-        static void ProcessFolderDefinition(FolderDefinition fd, OracleConnection con, DirectoryInfo codeSourceDirectory)
+        /// <summary>
+        /// Processes the given folder definition object, printing any warnings.
+        /// </summary>
+        /// <param name="fd">The folder definition to use.</param>
+        /// <param name="con">The Oracle connection to use.</param>
+        /// <param name="codeSourceDirectory">The CodeSource directory to compare with.</param>
+        private static void ProcessFolderDefinition(FolderDefinition fd, OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
             DirectoryInfo dirInfo = new DirectoryInfo(Path.Combine(codeSourceDirectory.FullName, fd.Directory));
             OracleCommand command = con.CreateCommand();
@@ -300,8 +337,8 @@ AND pr.ignore_flag IS NULL";
                     continue;
                 }
 
-                string databaseContents = CleanXml(reader.GetOracleClob(0).Value);
-                string fileContents = CleanXml(File.ReadAllText(fileInfo.FullName));
+                string databaseContents = CleanXmlSource(reader.GetOracleClob(0).Value);
+                string fileContents = CleanXmlSource(File.ReadAllText(fileInfo.FullName));
 
                 if (databaseContents != fileContents)
                 {
@@ -312,54 +349,15 @@ AND pr.ignore_flag IS NULL";
             }
         }
 
-        /*
-        static void CheckXviews(OracleConnection con, DirectoryInfo codeSourceDirectory)
-        {
-            DirectoryInfo xviewDirectory = new DirectoryInfo(Path.Combine(codeSourceDirectory.FullName, "XviewDefinitions"));
-
-            OracleCommand xviewCommand = con.CreateCommand();
-            xviewCommand.CommandText = @"
-SELECT x.xview_metadata.getClobVal()
-FROM xviewmgr.xview_definition_metadata x
-WHERE file_name = :file_name
-";
-
-            foreach (FileInfo xviewFile in xviewDirectory.GetFiles("*.xml"))
-            {
-                xviewCommand.Parameters.Clear();
-                xviewCommand.Parameters.Add("filename", xviewFile.Name);
-                OracleDataReader reader = xviewCommand.ExecuteReader();
-                if (!reader.Read())
-                {
-                    Console.WriteLine($"Xview {xviewFile.Name} will be added.");
-                    continue;
-                }
-
-                string databaseContents = CleanXml(reader.GetOracleClob(0).Value);
-                string fileContents = CleanXml(File.ReadAllText(xviewFile.FullName));
-
-                if (databaseContents != fileContents)
-                {
-                    Console.WriteLine($"Xview is different {xviewFile.Name}");
-                }
-            }
-        }*/
-
-        static void ShowHelp(OptionSet p)
-        {
-            Console.WriteLine("Usage: greet [OPTIONS]+ message");
-            Console.WriteLine("Greet a list of individuals with an optional message.");
-            Console.WriteLine("If no message is specified, a generic greeting is used.");
-            Console.WriteLine();
-            Console.WriteLine("Options:");
-            p.WriteOptionDescriptions(Console.Out);
-        }
-
-        /*static void Debug(string format, params object[] args)
-        {
-            
-        }*/
-
+        /// <summary>
+        /// Opens a new connection to an Oracle Database using the given parameters.
+        /// </summary>
+        /// <param name="username">The username to connect as.</param>
+        /// <param name="password">The password of the user.</param>
+        /// <param name="hostname">The IP address of the database to connect to.</param>
+        /// <param name="port">The port to connect with.</param>
+        /// <param name="sid">The Oracle SID to connect to.</param>
+        /// <returns>The connection object if the connection was successful, otherwise false.</returns>
         private static OracleConnection CreateConnection(string username, string password, string hostname, int port, string sid)
         {
             try
@@ -382,44 +380,60 @@ WHERE file_name = :file_name
             }
         }
 
-        static string TrimLines(string str)
+        /// <summary>
+        /// Removes all trailing and leading whitespace from the lines in the given string.
+        /// </summary>
+        /// <param name="str">The string to trim.</param>
+        /// <returns>The trimmed string.</returns>
+        private static string TrimLines(string str)
         {
-            const string matchPattern = @"^[ \t]*(.+?)[ \t]*$";
-            const string replacePattern = @"$1";
-            str = Regex.Replace(str, @"^\s+$[\r\n]*", "", RegexOptions.Multiline);
-            return Regex.Replace(str, matchPattern, replacePattern, RegexOptions.Multiline);
+            const string MatchPattern = @"^[ \t]*(.+?)[ \t]*$";
+            const string ReplacePattern = @"$1";
+            str = Regex.Replace(str, @"^\s+$[\r\n]*", string.Empty, RegexOptions.Multiline);
+            return Regex.Replace(str, MatchPattern, ReplacePattern, RegexOptions.Multiline);
         }
 
-        static string NormalisePackage(string package, string packageName)
+        /// <summary>
+        /// Cleans the source of the given package, so it can be diffed without unnecessary changes.
+        /// </summary>
+        /// <param name="package">The package source to clean down.</param>
+        /// <param name="packageName">The name of the package that is being cleaned.</param>
+        /// <returns>The cleaned down version of the package.</returns>
+        private static string CleanPackageSource(string package, string packageName)
         {
             package = TrimLines(package);
-            //package = Regex.Replace(package, @"\s+?(.+)\\?\s+?", "$1", RegexOptions.Multiline);
-            //package = Regex.Replace(package, @"(CREATE OR REPLACE\s+)?(EDITIONABLE\s+)?PACKAGE\s+(BODY\s+)?""?(.+?)""?\.""?(.+?)""? IS", @"CREATE OR REPLACE PACKAGE $3$4.$5 IS", RegexOptions.Multiline);
-            //package = Regex.Replace(package, "(CREATE OR REPLACE)?.*?PACKAGE.+?(BODY)?.+", "");
-            //package = Regex.Replace(package, @"^(CREATE OR REPLACE\s+?)?(FORCE\s+?)?(EDITIONABLE\s+?)?(PACKAGE BODY|VIEW).+?(""?\S+?""?\.)?""?\S+?\""?\s+?(IS|AS)", "", RegexOptions.Multiline);
-            //package = Regex.Replace(package, @"PACKAGE( BODY)?.+?IS.*?", "");
 
+            // package = Regex.Replace(package, @"\s+?(.+)\\?\s+?", "$1", RegexOptions.Multiline);
+            // package = Regex.Replace(package, @"(CREATE OR REPLACE\s+)?(EDITIONABLE\s+)?PACKAGE\s+(BODY\s+)?""?(.+?)""?\.""?(.+?)""? IS", @"CREATE OR REPLACE PACKAGE $3$4.$5 IS", RegexOptions.Multiline);
+            // package = Regex.Replace(package, "(CREATE OR REPLACE)?.*?PACKAGE.+?(BODY)?.+", "");
+            // package = Regex.Replace(package, @"^(CREATE OR REPLACE\s+?)?(FORCE\s+?)?(EDITIONABLE\s+?)?(PACKAGE BODY|VIEW).+?(""?\S+?""?\.)?""?\S+?\""?\s+?(IS|AS)", "", RegexOptions.Multiline);
+            // package = Regex.Replace(package, @"PACKAGE( BODY)?.+?IS.*?", "");
             package = Regex.Replace(package, @"(.*?) *--.+?$", "$1", RegexOptions.Multiline);
             package = TrimLines(package);
-            //package = Regex.Replace(package, @"^((CREATE OR REPLACE)|(PACKAGE( BODY)?)).+?\s(AS|IS)\s", "", RegexOptions.Multiline);
-            package = Regex.Replace(package, @"^.*?" + packageName + @".*?\s(AS|IS)\s", "", RegexOptions.Singleline);
-            package = Regex.Replace(package, @".+?\s(AS|IS)\s", "", RegexOptions.Multiline);
+
+            // package = Regex.Replace(package, @"^((CREATE OR REPLACE)|(PACKAGE( BODY)?)).+?\s(AS|IS)\s", "", RegexOptions.Multiline);
+            package = Regex.Replace(package, @"^.*?" + packageName + @".*?\s(AS|IS)\s", string.Empty, RegexOptions.Singleline);
+            package = Regex.Replace(package, @".+?\s(AS|IS)\s", string.Empty, RegexOptions.Multiline);
             package = package.Trim();
             package = package.TrimEnd('/');
             package = package.Trim();
-            package = Regex.Replace(package, "^--.*?[\r\n]+", "", RegexOptions.Multiline);
+            package = Regex.Replace(package, "^--.*?[\r\n]+", string.Empty, RegexOptions.Multiline);
             package = TrimLines(package);
 
             return package;
         }
 
-        static string CleanXml(string xml)
+        /// <summary>
+        /// Strips down the given xml string to be able to diff them with.
+        /// </summary>
+        /// <param name="xml">The xml string to process.</param>
+        /// <returns>The stripped down version of the xml.</returns>
+        private static string CleanXmlSource(string xml)
         {
-            xml = Regex.Replace(xml, @"\s", "");
-            xml = Regex.Replace(xml, @"<!--.*?-->", "");
-            xml = Regex.Replace(xml, @"<\?.*?\?>", "");
+            xml = Regex.Replace(xml, @"\s", string.Empty);
+            xml = Regex.Replace(xml, @"<!--.*?-->", string.Empty);
+            xml = Regex.Replace(xml, @"<\?.*?\?>", string.Empty);
             return xml;
         }
-
     }
 }

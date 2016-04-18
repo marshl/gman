@@ -54,24 +54,24 @@ namespace GMan
             var p = new OptionSet()
             {
                 { "u|username=",
-                    "the username of {USERNAME} to log in as.\n" +
+                    "the username to log in as.\n" +
                         "default xviewmgr.",
                   (string v) => username = v },
                 { "r|port=",
-                    "the port of {PORT} to log in as.\n" +
+                    "the port to connect to\n" +
                         "default 1521.",
                   (int v) => port = v },
                  { "p|password=",
-                    "the password of {PORT} to log in as.\n",
+                    "the password of the user\n",
                   (string v) => password = v },
                  { "o|host=",
-                    "the host of {PORT} to log in as.\n",
+                    "the host to connect to\n",
                   (string v) => hostname = v },
                  { "s|sid=",
-                    "the sid of {SID} to log in as.\n",
+                    "the Oracle Service ID\n",
                   (string v) => sid = v },
                 { "d|directory=",
-                    "the sid of {SID} to log in as.\n",
+                    "the CodeSource directory to compare with.\n",
                   (string v) => directory = v },
                 { "h|help",  "show this message and exit",
                   v => show_help = v != null },

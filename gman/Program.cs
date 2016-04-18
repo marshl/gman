@@ -319,6 +319,13 @@ AND pr.ignore_flag IS NULL";
                 xmlReader.Close();
                 reader.Close();
 
+                string fullpath = Path.Combine(codeSourceDirectory.FullName, fd.Directory);
+                if (!Directory.Exists(fullpath))
+                {
+                    Console.WriteLine($"The folder {fullpath} could not be found");
+                    continue;
+                }
+
                 ProcessFolderDefinition(fd, con, codeSourceDirectory);
             }
         }

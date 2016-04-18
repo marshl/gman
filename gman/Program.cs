@@ -146,6 +146,11 @@ namespace GMan
         /// <param name="codeSourceDirectory">The Code Source directory to start from.</param>
         private static void PatchCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
+            Console.WriteLine(@"
+#################################################
+# Patches
+# ");
+
             OracleCommand patchCommand = con.CreateCommand();
             patchCommand.CommandText = @"
 SELECT pr.id FROM promotemgr.patch_runs pr
@@ -192,6 +197,11 @@ AND pr.ignore_flag IS NULL";
         /// <param name="codeSourceDirectory">The Code Source directory to start from.</param>
         private static void PackageCheck(OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
+            Console.WriteLine(@"
+#################################################
+# Database Source
+# ");
+
             DirectoryInfo datasouceDirectory = new DirectoryInfo(Path.Combine(codeSourceDirectory.FullName, "DatabaseSource", "CoreSource"));
 
             foreach (DirectoryInfo dirInfo in datasouceDirectory.GetDirectories())
@@ -321,6 +331,11 @@ AND pr.ignore_flag IS NULL";
         /// <param name="codeSourceDirectory">The CodeSource directory to compare with.</param>
         private static void ProcessFolderDefinition(FolderDefinition fd, OracleConnection con, DirectoryInfo codeSourceDirectory)
         {
+            Console.WriteLine(@"
+#################################################
+# " + fd.Name + @"
+# ");
+
             DirectoryInfo dirInfo = new DirectoryInfo(Path.Combine(codeSourceDirectory.FullName, fd.Directory));
             OracleCommand command = con.CreateCommand();
             command.CommandText = fd.LoadStatement;

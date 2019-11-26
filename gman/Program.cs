@@ -120,7 +120,7 @@ namespace GMan
 
             PatchCheck(con, codeSourceDirectory);
             CheckALlFolderDefinitions(con, codeSourceDirectory);
-            
+
             // PackageCheck(con, codeSourceDirectory);
             con.Close();
         }

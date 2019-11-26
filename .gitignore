@@ -1,2 +1,4 @@
 gman/bin/
 gman/obj/
+packages/
+.vs/
